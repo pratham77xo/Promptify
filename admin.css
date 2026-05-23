@@ -1,0 +1,244 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial;
+}
+
+body{
+  background:#0f172a;
+  color:white;
+}
+
+/* LOGIN PAGE */
+
+.login-page{
+  height:100vh;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* LOGIN BOX */
+
+.login-box{
+  width:350px;
+
+  background:#1e293b;
+
+  padding:40px;
+
+  border-radius:25px;
+
+  text-align:center;
+
+  box-shadow:0 15px 35px rgba(0,0,0,0.4);
+}
+
+.login-box h1{
+  margin-bottom:30px;
+  color:#38bdf8;
+}
+
+.login-box input{
+  width:100%;
+
+  padding:15px;
+
+  border:none;
+
+  border-radius:12px;
+
+  margin-bottom:20px;
+
+  background:#334155;
+
+  color:white;
+}
+
+.login-box button{
+  width:100%;
+}
+
+#error-message{
+  color:#f87171;
+  margin-top:15px;
+}
+
+/* DASHBOARD */
+
+.dashboard{
+  display:flex;
+  min-height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+  width:250px;
+
+  background:#111827;
+
+  padding:30px;
+}
+
+.sidebar h2{
+  margin-bottom:40px;
+
+  color:#38bdf8;
+}
+
+.sidebar ul{
+  list-style:none;
+}
+
+.sidebar li{
+  margin-bottom:20px;
+
+  cursor:pointer;
+
+  transition:0.3s;
+}
+
+.sidebar li:hover{
+  color:#38bdf8;
+}
+
+/* MAIN CONTENT */
+
+.main-content{
+  flex:1;
+
+  padding:40px;
+}
+
+.main-content h1{
+  margin-bottom:30px;
+}
+
+.main-content input,
+.main-content textarea,
+.main-content select{
+  width:100%;
+
+  padding:15px;
+
+  margin-bottom:20px;
+
+  border:none;
+
+  border-radius:12px;
+
+  background:#1e293b;
+
+  color:white;
+}
+
+.main-content textarea{
+  height:150px;
+
+  resize:none;
+}
+
+/* BUTTON */
+
+button{
+  padding:15px 30px;
+
+  border:none;
+
+  border-radius:12px;
+
+  background:linear-gradient(135deg,#06b6d4,#8b5cf6);
+
+  color:white;
+
+  font-weight:bold;
+
+  cursor:pointer;
+
+  transition:0.3s;
+}
+
+button:hover{
+  transform:translateY(-3px);
+}
+
+/* IMAGE PREVIEW */
+
+#previewImage{
+  width:250px;
+
+  border-radius:20px;
+
+  margin-bottom:20px;
+
+  display:none;
+}
+
+/* PROMPT CARDS */
+
+#promptContainer{
+  margin-top:40px;
+
+  display:flex;
+
+  flex-wrap:wrap;
+
+  gap:20px;
+}
+
+.prompt-card{
+  width:260px;
+
+  background:#1e293b;
+
+  border-radius:20px;
+
+  overflow:hidden;
+
+  position:relative;
+}
+
+.prompt-card img{
+  width:100%;
+
+  height:250px;
+
+  object-fit:cover;
+}
+
+.prompt-card-content{
+  padding:15px;
+}
+
+.prompt-card h3{
+  margin-bottom:10px;
+
+  color:#38bdf8;
+}
+
+.prompt-card p{
+  margin-bottom:10px;
+
+  color:#cbd5e1;
+
+  font-size:14px;
+}
+
+.prompt-card span{
+  color:#8b5cf6;
+}
+
+/* DELETE BUTTON */
+
+.delete-btn{
+  width:100%;
+
+  border-radius:0;
+
+  background:#ef4444;
+
+  margin-top:15px;
+}

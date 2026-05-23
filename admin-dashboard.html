@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Admin Dashboard</title>
+
+  <link rel="stylesheet" href="admin.css">
+
+</head>
+
+<body>
+
+  <div class="dashboard">
+
+    <!-- SIDEBAR -->
+
+    <div class="sidebar">
+
+      <h2>PROMPT ADMIN</h2>
+
+      <ul>
+
+        <li>Dashboard</li>
+
+        <li onclick="logout()">
+          Logout
+        </li>
+
+      </ul>
+
+    </div>
+
+    <!-- MAIN -->
+
+    <div class="main-content">
+
+      <h1>Upload Prompt</h1>
+
+      <input
+        type="text"
+        id="promptTitle"
+        placeholder="Prompt Title"
+      >
+
+      <textarea
+        id="promptText"
+        placeholder="Enter Prompt Here"
+      ></textarea>
+
+      <select id="promptCategory">
+
+        <option>ChatGPT</option>
+        <option>Leonardo AI</option>
+        <option>Gemini</option>
+        <option>Midjourney</option>
+
+      </select>
+
+      <input
+        type="file"
+        id="imageInput"
+        accept="image/*"
+      >
+
+      <img
+        id="previewImage"
+        src=""
+      >
+
+      <button onclick="savePrompt()">
+        SAVE PROMPT
+      </button>
+
+      <div id="promptContainer"></div>
+
+    </div>
+
+  </div>
+
+  <script src="admin.js"></script>
+
+</body>
+</html>
