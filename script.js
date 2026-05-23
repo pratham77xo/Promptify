@@ -1,33 +1,42 @@
-/* PROMPT GRID */
+const API_URL =
+"https://promptify-backend-ruty.onrender.com/api/prompts";
 
 const promptGrid =
-document.getElementById(
-  "promptGrid"
-);
+document.getElementById("promptGrid");
 
-/* FETCH PROMPTS FROM BACKEND */
+const searchInput =
+document.getElementById("searchInput");
 
-async function loadPrompts(){
+let prompts = [];
 
-  try{
+/* LOAD PROMPTS */
+
+async function loadPrompts() {
+
+  try {
 
     const response =
-      await fetch(
-        "http://localhost:5000/api/prompts"
-      );
+    await fetch(API_URL);
 
-    const prompts =
-      await response.json();
+    prompts =
+    await response.json();
 
     displayPrompts(prompts);
-
-    setupSearch(prompts);
 
   }
 
   catch(error){
 
-    console.log(error);
+    console.log(
+      "Error loading prompts",
+      error
+    );
+
+    promptGrid.innerHTML = `
+      <h2>
+        Failed to load prompts
+      </h2>
+    `;
 
   }
 
@@ -35,65 +44,51 @@ async function loadPrompts(){
 
 /* DISPLAY PROMPTS */
 
-function displayPrompts(prompts){
+function displayPrompts(data){
 
   promptGrid.innerHTML = "";
 
-  prompts.forEach((data) => {
+  data.forEach(prompt => {
 
     const card =
-      document.createElement("div");
+    document.createElement("div");
 
-    card.classList.add(
-      "prompt-card"
-    );
+    card.className =
+    "prompt-card";
 
     card.innerHTML = `
 
-      <img src="${data.image}">
+      <img
+        src="${prompt.image}"
+        alt="${prompt.title}"
+      >
 
       <div class="card-content">
 
-        <h2>${data.title}</h2>
-
-        <p>${data.promptText}</p>
-
         <span class="category">
-          ${data.category}
+          ${prompt.category}
         </span>
 
-        <button class="copy-btn">
-          COPY PROMPT
+        <h2>
+          ${prompt.title}
+        </h2>
+
+        <p>
+          ${prompt.prompt}
+        </p>
+
+        <button
+          class="copy-btn"
+          onclick="copyPrompt(
+            \`${prompt.prompt}\`
+          )"
+        >
+          Copy Prompt
         </button>
 
       </div>
 
     `;
-
-    /* COPY BUTTON */
-
-    card
-    .querySelector(".copy-btn")
-    .addEventListener(
-      "click",
-      function(){
-
-        navigator.clipboard.writeText(
-          data.promptText
-        );
-
-        this.innerText =
-          "COPIED 🔥";
-
-        setTimeout(() => {
-
-          this.innerText =
-            "COPY PROMPT";
-
-        },2000);
-
-      }
-    );
 
     promptGrid.appendChild(card);
 
@@ -101,56 +96,45 @@ function displayPrompts(prompts){
 
 }
 
-/* SEARCH SYSTEM */
+/* COPY PROMPT */
 
-function setupSearch(prompts){
+function copyPrompt(text){
 
-  const searchInput =
-    document.getElementById(
-      "searchInput"
-    );
+  navigator.clipboard.writeText(text);
 
-  searchInput.addEventListener(
-    "input",
-    function(){
-
-      const value =
-        this.value.toLowerCase();
-
-      const filteredPrompts =
-        prompts.filter((item) => {
-
-          return (
-
-            item.title
-            .toLowerCase()
-            .includes(value)
-
-            ||
-
-            item.promptText
-            .toLowerCase()
-            .includes(value)
-
-            ||
-
-            item.category
-            .toLowerCase()
-            .includes(value)
-
-          );
-
-        });
-
-      displayPrompts(
-        filteredPrompts
-      );
-
-    }
-  );
+  alert("Prompt Copied 🚀");
 
 }
 
-/* INITIAL LOAD */
+/* SEARCH */
+
+searchInput.addEventListener(
+  "input",
+  () => {
+
+    const value =
+    searchInput.value.toLowerCase();
+
+    const filtered =
+    prompts.filter(prompt =>
+
+      prompt.title
+      .toLowerCase()
+      .includes(value)
+
+      ||
+
+      prompt.category
+      .toLowerCase()
+      .includes(value)
+
+    );
+
+    displayPrompts(filtered);
+
+  }
+);
+
+/* START */
 
 loadPrompts();
