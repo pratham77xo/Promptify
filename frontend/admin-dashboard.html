@@ -16,7 +16,6 @@
   <div class="dashboard">
 
     <!-- SIDEBAR -->
-
     <div class="sidebar">
 
       <h2>PROMPT ADMIN</h2>
@@ -25,7 +24,7 @@
 
         <li>Dashboard</li>
 
-        <li onclick="logout()">
+        <li onclick="logout()" style="cursor:pointer;">
           Logout
         </li>
 
@@ -34,7 +33,6 @@
     </div>
 
     <!-- MAIN -->
-
     <div class="main-content">
 
       <h1>Upload Prompt</h1>
@@ -52,10 +50,10 @@
 
       <select id="promptCategory">
 
-        <option>ChatGPT</option>
-        <option>Leonardo AI</option>
-        <option>Gemini</option>
-        <option>Midjourney</option>
+        <option value="ChatGPT">ChatGPT</option>
+        <option value="Leonardo AI">Leonardo AI</option>
+        <option value="Gemini">Gemini</option>
+        <option value="Midjourney">Midjourney</option>
 
       </select>
 
@@ -68,6 +66,8 @@
       <img
         id="previewImage"
         src=""
+        alt="Preview Image"
+        style="max-width:200px; display:block; margin-top:10px;"
       >
 
       <button onclick="savePrompt()">
