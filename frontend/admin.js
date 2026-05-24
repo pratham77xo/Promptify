@@ -1,5 +1,7 @@
 let previewImage = document.getElementById("previewImage");
 
+const API_URL = "https://promptify-backend-ruty.onrender.com/api/prompts";
+
 /* LOGIN SYSTEM */
 function checkLogin() {
   const code = document.getElementById("adminCode").value;
@@ -50,7 +52,7 @@ if (imageInput) {
   });
 }
 
-/* SAVE PROMPT (FULL FIXED VERSION) */
+/* SAVE PROMPT */
 async function savePrompt() {
   const title = document.getElementById("promptTitle").value;
   const promptText = document.getElementById("promptText").value;
@@ -63,7 +65,6 @@ async function savePrompt() {
   }
 
   const promptData = {
-    id: Date.now(),
     title,
     promptText,
     category,
@@ -71,7 +72,7 @@ async function savePrompt() {
   };
 
   try {
-    const response = await fetch("https://promptify-backend-ruty.onrender.com/api/prompts", {
+    const response = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -81,24 +82,37 @@ async function savePrompt() {
 
     const result = await response.json();
 
-    alert(result.message || "Saved successfully");
+    alert(result.message || "Saved!");
 
-    createPromptCard(promptData);
+    loadPrompts(); // 🔥 FIX: sync with database
 
-    /* CLEAR INPUTS */
-    document.getElementById("promptTitle").value = "";
-    document.getElementById("promptText").value = "";
-    document.getElementById("promptCategory").selectedIndex = 0;
-    document.getElementById("imageInput").value = "";
-    previewImage.style.display = "none";
+    clearForm();
 
   } catch (error) {
-    console.log("ERROR:", error);
+    console.log(error);
     alert("Backend not connected ❌");
   }
 }
 
-/* CREATE PROMPT CARD */
+/* LOAD PROMPTS FROM DB */
+async function loadPrompts() {
+  const container = document.getElementById("promptContainer");
+
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    container.innerHTML = "";
+
+    data.forEach(createPromptCard);
+
+  } catch (err) {
+    console.log(err);
+    container.innerHTML = "Failed to load prompts";
+  }
+}
+
+/* CREATE CARD */
 function createPromptCard(data) {
   const container = document.getElementById("promptContainer");
 
@@ -115,9 +129,32 @@ function createPromptCard(data) {
     </div>
   `;
 
-  card.querySelector(".delete-btn").addEventListener("click", function () {
-    card.remove();
+  /* DELETE FROM DB */
+  card.querySelector(".delete-btn").addEventListener("click", async function () {
+    try {
+      await fetch(`${API_URL}/${data._id}`, {
+        method: "DELETE"
+      });
+
+      loadPrompts();
+    } catch (err) {
+      console.log(err);
+    }
   });
 
   container.appendChild(card);
+}
+
+/* CLEAR FORM */
+function clearForm() {
+  document.getElementById("promptTitle").value = "";
+  document.getElementById("promptText").value = "";
+  document.getElementById("promptCategory").selectedIndex = 0;
+  document.getElementById("imageInput").value = "";
+  previewImage.style.display = "none";
+}
+
+/* INIT */
+if (window.location.pathname.includes("admin-dashboard.html")) {
+  loadPrompts();
 }

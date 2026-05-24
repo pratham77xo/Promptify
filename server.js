@@ -59,7 +59,31 @@ app.post("/api/prompts", async (req, res) => {
   }
 });
 
-/* START SERVER (IMPORTANT FIX) */
+/* DELETE PROMPT (🔥 FIX ADDED) */
+app.delete("/api/prompts/:id", async (req, res) => {
+  try {
+    const deleted = await Prompt.findByIdAndDelete(req.params.id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        message: "Prompt not found"
+      });
+    }
+
+    res.status(200).json({
+      message: "Deleted successfully 🔥"
+    });
+
+  } catch (error) {
+    console.log("DELETE ERROR:", error);
+    res.status(500).json({
+      message: "Delete failed",
+      error: error.message
+    });
+  }
+});
+
+/* START SERVER */
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
