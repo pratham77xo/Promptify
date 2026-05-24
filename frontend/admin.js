@@ -37,7 +37,7 @@ if (imageInput) {
   imageInput.addEventListener("change", function () {
     const file = this.files[0];
 
-    if (file && previewImage) {
+    if (file) {
       const reader = new FileReader();
 
       reader.onload = function () {
@@ -50,7 +50,7 @@ if (imageInput) {
   });
 }
 
-/* SAVE PROMPT (FIXED FOR DEPLOYMENT) */
+/* SAVE PROMPT (FULL FIXED VERSION) */
 async function savePrompt() {
   const title = document.getElementById("promptTitle").value;
   const promptText = document.getElementById("promptText").value;
@@ -71,9 +71,7 @@ async function savePrompt() {
   };
 
   try {
-    /* ⚠️ IMPORTANT FIX */
-    /* Replace localhost with real backend URL later */
-    const response = await fetch("/api/prompts", {
+    const response = await fetch("https://promptify-backend-ruty.onrender.com/api/prompts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -83,7 +81,7 @@ async function savePrompt() {
 
     const result = await response.json();
 
-    alert(result.message || "Saved!");
+    alert(result.message || "Saved successfully");
 
     createPromptCard(promptData);
 
@@ -95,8 +93,8 @@ async function savePrompt() {
     previewImage.style.display = "none";
 
   } catch (error) {
-    console.log(error);
-    alert("Backend not connected (deploy backend separately)");
+    console.log("ERROR:", error);
+    alert("Backend not connected ❌");
   }
 }
 
