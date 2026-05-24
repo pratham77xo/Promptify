@@ -72,7 +72,7 @@ async function savePrompt() {
   };
 
   try {
-    const response = await fetch(API_URL, {
+    await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -80,13 +80,8 @@ async function savePrompt() {
       body: JSON.stringify(promptData)
     });
 
-    const result = await response.json();
-
-    alert(result.message || "Saved!");
-
-    loadPrompts(); // 🔥 FIX: sync with database
-
     clearForm();
+    loadPrompts(); // 🔥 refresh dashboard instantly
 
   } catch (error) {
     console.log(error);
@@ -94,7 +89,7 @@ async function savePrompt() {
   }
 }
 
-/* LOAD PROMPTS FROM DB */
+/* LOAD ALL PROMPTS (FIXED SYNC) */
 async function loadPrompts() {
   const container = document.getElementById("promptContainer");
 
@@ -104,7 +99,9 @@ async function loadPrompts() {
 
     container.innerHTML = "";
 
-    data.forEach(createPromptCard);
+    data.forEach(prompt => {
+      createPromptCard(prompt);
+    });
 
   } catch (err) {
     console.log(err);
@@ -129,16 +126,18 @@ function createPromptCard(data) {
     </div>
   `;
 
-  /* DELETE FROM DB */
-  card.querySelector(".delete-btn").addEventListener("click", async function () {
+  /* DELETE FIX (IMPORTANT) */
+  card.querySelector(".delete-btn").addEventListener("click", async () => {
     try {
       await fetch(`${API_URL}/${data._id}`, {
         method: "DELETE"
       });
 
-      loadPrompts();
+      loadPrompts(); // 🔥 refresh after delete
+
     } catch (err) {
-      console.log(err);
+      console.log("DELETE ERROR:", err);
+      alert("Delete failed ❌");
     }
   });
 
@@ -154,7 +153,7 @@ function clearForm() {
   previewImage.style.display = "none";
 }
 
-/* INIT */
+/* INIT DASHBOARD */
 if (window.location.pathname.includes("admin-dashboard.html")) {
   loadPrompts();
 }
