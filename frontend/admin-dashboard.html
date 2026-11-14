@@ -67,10 +67,12 @@
         id="previewImage"
         src=""
         alt="Preview Image"
-        style="max-width:200px; display:block; margin-top:10px;"
+        style="max-width:200px; margin-top:10px;"
       >
 
-      <button onclick="savePrompt()">
+      <div id="statusMessage" role="status"></div>
+
+      <button id="saveBtn" onclick="savePrompt()">
         SAVE PROMPT
       </button>
 
