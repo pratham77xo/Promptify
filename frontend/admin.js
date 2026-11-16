@@ -2,14 +2,6 @@ let previewImage = document.getElementById("previewImage");
 
 const API_URL = "https://promptify-backend-ruty.onrender.com/api/prompts";
 
-/* Compressed image waiting to be saved (this is what gets uploaded) */
-let selectedImageData = "";
-let imageRequestId = 0;
-let isSaving = false;
-
-/* The server rejects images bigger than this (in characters), so we shrink to fit */
-const MAX_IMAGE_CHARS = 1000000;
-
 /* LOGIN SYSTEM */
 function checkLogin() {
   const code = document.getElementById("adminCode").value;
@@ -40,151 +32,35 @@ function logout() {
   window.location.href = "admin-login.html";
 }
 
-/* SUCCESS / ERROR MESSAGE */
-let messageTimer;
-
-function showMessage(text, type) {
-  const box = document.getElementById("statusMessage");
-
-  if (!box) {
-    return;
-  }
-
-  box.textContent = text;
-  box.className = type;
-  box.style.display = "block";
-
-  clearTimeout(messageTimer);
-
-  if (type === "success") {
-    messageTimer = setTimeout(() => {
-      box.style.display = "none";
-    }, 5000);
-  }
-}
-
-/* STOP TEXT FROM BEING TREATED AS HTML */
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/* SHRINK IMAGE (big phone photos are several MB) */
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-
-      const maxSide = 1200;
-      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-      const width = Math.round(img.width * scale);
-      const height = Math.round(img.height * scale);
-
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-
-      let quality = 0.82;
-      let result = canvas.toDataURL("image/jpeg", quality);
-
-      while (result.length > MAX_IMAGE_CHARS && quality > 0.4) {
-        quality -= 0.1;
-        result = canvas.toDataURL("image/jpeg", quality);
-      }
-
-      if (result.length > MAX_IMAGE_CHARS) {
-        reject(new Error("This image is too large. Please choose a smaller one."));
-        return;
-      }
-
-      resolve(result);
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Could not read this image. Try a JPG or PNG file."));
-    };
-
-    img.src = url;
-  });
-}
-
 /* IMAGE PREVIEW */
 const imageInput = document.getElementById("imageInput");
 
 if (imageInput) {
-  imageInput.addEventListener("change", async function () {
+  imageInput.addEventListener("change", function () {
     const file = this.files[0];
 
-    selectedImageData = "";
-    const myRequest = ++imageRequestId;
+    if (file) {
+      const reader = new FileReader();
 
-    if (!file) {
-      previewImage.style.display = "none";
-      return;
-    }
+      reader.onload = function () {
+        previewImage.src = reader.result;
+        previewImage.style.display = "block";
+      };
 
-    if (!file.type.startsWith("image/")) {
-      showMessage("Please choose an image file (JPG, PNG, WEBP).", "error");
-      this.value = "";
-      previewImage.style.display = "none";
-      return;
-    }
-
-    try {
-      const compressed = await compressImage(file);
-
-      // A newer file was picked while this one was still processing
-      if (myRequest !== imageRequestId) {
-        return;
-      }
-
-      selectedImageData = compressed;
-      previewImage.src = compressed;
-      previewImage.style.display = "block";
-    } catch (error) {
-      if (myRequest !== imageRequestId) {
-        return;
-      }
-
-      this.value = "";
-      previewImage.style.display = "none";
-      showMessage(error.message, "error");
+      reader.readAsDataURL(file);
     }
   });
 }
 
 /* SAVE PROMPT */
 async function savePrompt() {
-  // Stops double-clicks from creating the same prompt twice
-  if (isSaving) {
-    return;
-  }
-
-  const title = document.getElementById("promptTitle").value.trim();
-  const promptText = document.getElementById("promptText").value.trim();
+  const title = document.getElementById("promptTitle").value;
+  const promptText = document.getElementById("promptText").value;
   const category = document.getElementById("promptCategory").value;
-  const image = selectedImageData;
+  const image = previewImage?.src || "";
 
-  if (!title || !promptText) {
-    showMessage("Please enter a title and the prompt text.", "error");
-    return;
-  }
-
-  if (!image) {
-    showMessage("Please choose an image first.", "error");
+  if (!title || !promptText || !image) {
+    alert("Please fill all fields");
     return;
   }
 
@@ -195,76 +71,31 @@ async function savePrompt() {
     image
   };
 
-  setSaving(true);
-
-  // Render's free server can take up to a minute to wake up
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000);
-
   try {
-    const res = await fetch(API_URL, {
+    await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(promptData),
-      signal: controller.signal
+      body: JSON.stringify(promptData)
     });
 
-    const result = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(result.message || "Server error (" + res.status + ")");
-    }
-
     clearForm();
-    showMessage("Prompt saved successfully ✅", "success");
-    await loadPrompts(); // refresh dashboard instantly
+    loadPrompts(); // 🔥 refresh dashboard instantly
 
   } catch (error) {
     console.log(error);
-
-    if (error.name === "AbortError") {
-      showMessage("The server is taking too long (it may be waking up). Check the list below before saving again.", "error");
-    } else if (error instanceof TypeError) {
-      showMessage("Cannot reach the server. Check your internet and try again.", "error");
-    } else {
-      showMessage("Could not save: " + error.message, "error");
-    }
-
-  } finally {
-    clearTimeout(timer);
-    setSaving(false);
+    alert("Backend not connected ❌");
   }
 }
 
-function setSaving(saving) {
-  isSaving = saving;
-
-  const button = document.getElementById("saveBtn");
-
-  if (button) {
-    button.disabled = saving;
-    button.textContent = saving ? "SAVING..." : "SAVE PROMPT";
-  }
-}
-
-/* LOAD ALL PROMPTS */
+/* LOAD ALL PROMPTS (FIXED SYNC) */
 async function loadPrompts() {
   const container = document.getElementById("promptContainer");
 
   try {
     const res = await fetch(API_URL);
-
-    if (!res.ok) {
-      throw new Error("Server error (" + res.status + ")");
-    }
-
     const data = await res.json();
-
-    if (!Array.isArray(data)) {
-      throw new Error("Unexpected response from server");
-    }
 
     container.innerHTML = "";
 
@@ -286,38 +117,27 @@ function createPromptCard(data) {
   card.classList.add("prompt-card");
 
   card.innerHTML = `
-    <img src="${escapeHtml(data.image)}" alt="${escapeHtml(data.title)}">
+    <img src="${data.image}">
     <div class="prompt-card-content">
-      <h3>${escapeHtml(data.title)}</h3>
-      <p>${escapeHtml(data.promptText)}</p>
-      <span>${escapeHtml(data.category)}</span>
+      <h3>${data.title}</h3>
+      <p>${data.promptText}</p>
+      <span>${data.category}</span>
       <button class="delete-btn">DELETE</button>
     </div>
   `;
 
-  /* DELETE */
-  const deleteBtn = card.querySelector(".delete-btn");
-
-  deleteBtn.addEventListener("click", async () => {
-    deleteBtn.disabled = true;
-
+  /* DELETE FIX (IMPORTANT) */
+  card.querySelector(".delete-btn").addEventListener("click", async () => {
     try {
-      const res = await fetch(`${API_URL}/${data._id}`, {
+      await fetch(`${API_URL}/${data._id}`, {
         method: "DELETE"
       });
 
-      if (!res.ok) {
-        const result = await res.json().catch(() => ({}));
-        throw new Error(result.message || "Server error (" + res.status + ")");
-      }
-
-      showMessage("Prompt deleted ✅", "success");
-      loadPrompts(); // refresh after delete
+      loadPrompts(); // 🔥 refresh after delete
 
     } catch (err) {
       console.log("DELETE ERROR:", err);
-      deleteBtn.disabled = false;
-      showMessage("Delete failed: " + err.message, "error");
+      alert("Delete failed ❌");
     }
   });
 
@@ -330,11 +150,6 @@ function clearForm() {
   document.getElementById("promptText").value = "";
   document.getElementById("promptCategory").selectedIndex = 0;
   document.getElementById("imageInput").value = "";
-
-  // Forget the old image so it can never be saved again by mistake
-  selectedImageData = "";
-  imageRequestId++;
-  previewImage.removeAttribute("src");
   previewImage.style.display = "none";
 }
 
