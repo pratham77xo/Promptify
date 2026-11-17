@@ -5,23 +5,54 @@ const searchInput = document.getElementById("searchInput");
 
 let prompts = [];
 
+/* STOP TEXT FROM BEING TREATED AS HTML */
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /* LOAD PROMPTS */
-async function loadPrompts() {
+async function loadPrompts(silent = false) {
   try {
-    promptGrid.innerHTML = "<p>Loading prompts...</p>";
+    if (!silent) {
+      promptGrid.innerHTML = "<p>Loading prompts...</p>";
+    }
 
     const response = await fetch(API_URL);
 
-    prompts = await response.json();
+    if (!response.ok) {
+      throw new Error("Server error (" + response.status + ")");
+    }
 
-    displayPrompts(prompts);
+    const fresh = await response.json();
+
+    if (!Array.isArray(fresh)) {
+      throw new Error("Unexpected response from server");
+    }
+
+    // Background refresh: only redraw if something was added or deleted
+    const oldIds = prompts.map(p => p._id).join(",");
+    const newIds = fresh.map(p => p._id).join(",");
+
+    prompts = fresh;
+
+    if (!silent || oldIds !== newIds) {
+      applySearch();
+    }
 
   } catch (error) {
     console.log("Error loading prompts", error);
 
-    promptGrid.innerHTML = `
-      <h2>Failed to load prompts</h2>
-    `;
+    // A failed background refresh should not wipe prompts already on screen
+    if (!silent) {
+      promptGrid.innerHTML = `
+        <h2>Failed to load prompts</h2>
+      `;
+    }
   }
 }
 
@@ -38,21 +69,23 @@ function displayPrompts(data) {
     const card = document.createElement("div");
     card.className = "prompt-card";
 
+    const text = prompt.promptText || prompt.prompt || "";
+
     card.innerHTML = `
-      <img src="${prompt.image}" alt="${prompt.title}">
+      <img src="${escapeHtml(prompt.image)}" alt="${escapeHtml(prompt.title)}" loading="lazy">
 
       <div class="card-content">
 
         <span class="category">
-          ${prompt.category}
+          ${escapeHtml(prompt.category)}
         </span>
 
         <h2>
-          ${prompt.title}
+          ${escapeHtml(prompt.title)}
         </h2>
 
         <p>
-          ${prompt.promptText || prompt.prompt}
+          ${escapeHtml(text)}
         </p>
 
         <button class="copy-btn">
@@ -63,7 +96,7 @@ function displayPrompts(data) {
     `;
 
     card.querySelector(".copy-btn").addEventListener("click", () => {
-      copyPrompt(prompt.promptText || prompt.prompt);
+      copyPrompt(text);
     });
 
     promptGrid.appendChild(card);
@@ -80,18 +113,33 @@ function copyPrompt(text) {
 }
 
 /* SEARCH */
+function applySearch() {
+  const value = searchInput ? searchInput.value.toLowerCase() : "";
+
+  const filtered = prompts.filter(prompt =>
+    (prompt.title || "").toLowerCase().includes(value) ||
+    (prompt.category || "").toLowerCase().includes(value)
+  );
+
+  displayPrompts(filtered);
+}
+
 if (searchInput) {
-  searchInput.addEventListener("input", () => {
-    const value = searchInput.value.toLowerCase();
-
-    const filtered = prompts.filter(prompt =>
-      (prompt.title || "").toLowerCase().includes(value) ||
-      (prompt.category || "").toLowerCase().includes(value)
-    );
-
-    displayPrompts(filtered);
-  });
+  searchInput.addEventListener("input", applySearch);
 }
 
 /* START */
 loadPrompts();
+
+/* AUTO-UPDATE: check for new prompts every minute and when the tab is opened again */
+setInterval(() => {
+  if (!document.hidden) {
+    loadPrompts(true);
+  }
+}, 60000);
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    loadPrompts(true);
+  }
+});
