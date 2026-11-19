@@ -129,6 +129,61 @@ app.delete("/api/prompts/:id", async (req, res) => {
   }
 });
 
+/* ADMIN CHECK (set ADMIN_CODE in your Render environment variables) */
+function requireAdmin(req, res, next) {
+  const code = req.get("x-admin-code");
+
+  if (!process.env.ADMIN_CODE || code !== process.env.ADMIN_CODE) {
+    return res.status(401).json({ message: "Not authorized. Log in again." });
+  }
+
+  next();
+}
+
+/* SAVE TRENDING SELECTION + ORDER (ids[0] is shown first) */
+app.put("/api/trending", requireAdmin, async (req, res) => {
+  try {
+    const ids = req.body && req.body.ids;
+
+    const valid =
+      Array.isArray(ids) &&
+      ids.length <= 50 &&
+      ids.every(id => typeof id === "string" && /^[a-f0-9]{24}$/i.test(id)) &&
+      new Set(ids).size === ids.length;
+
+    if (!valid) {
+      return res.status(400).json({ message: "Invalid trending list" });
+    }
+
+    // 1) un-feature everything not in the list, 2) save each position
+    const ops = [
+      {
+        updateMany: {
+          filter: { isTrending: true, _id: { $nin: ids } },
+          update: { $set: { isTrending: false, trendingOrder: null } }
+        }
+      }
+    ];
+
+    ids.forEach((id, index) => {
+      ops.push({
+        updateOne: {
+          filter: { _id: id },
+          update: { $set: { isTrending: true, trendingOrder: index } }
+        }
+      });
+    });
+
+    await Prompt.bulkWrite(ops);
+
+    res.status(200).json({ message: "Trending saved", count: ids.length });
+
+  } catch (error) {
+    console.log("TRENDING ERROR:", error);
+    res.status(500).json({ message: "Could not save trending" });
+  }
+});
+
 /* ERROR HANDLER (body too big, broken JSON, anything unexpected) */
 app.use((err, req, res, next) => {
   if (err.type === "entity.too.large") {

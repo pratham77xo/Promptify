@@ -1,6 +1,16 @@
 const API_URL = "https://promptify-backend-ruty.onrender.com/api/prompts";
 
+/* Official sites for the categories that exist in the admin dropdown */
+const TOOL_LINKS = {
+  "ChatGPT": "https://chatgpt.com/",
+  "Leonardo AI": "https://leonardo.ai/",
+  "Gemini": "https://gemini.google.com/",
+  "Midjourney": "https://www.midjourney.com/"
+};
+
 const promptGrid = document.getElementById("promptGrid");
+const trendingSection = document.getElementById("trending");
+const trendingRow = document.getElementById("trendingRow");
 const searchInput = document.getElementById("searchInput");
 
 let prompts = [];
@@ -15,11 +25,16 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+/* The full original prompt text (never shortened) */
+function getPromptText(prompt) {
+  return prompt.promptText || prompt.prompt || "";
+}
+
 /* LOAD PROMPTS */
 async function loadPrompts(silent = false) {
   try {
     if (!silent) {
-      promptGrid.innerHTML = "<p>Loading prompts...</p>";
+      promptGrid.innerHTML = '<p class="message">Loading prompts...</p>';
     }
 
     const response = await fetch(API_URL);
@@ -34,14 +49,16 @@ async function loadPrompts(silent = false) {
       throw new Error("Unexpected response from server");
     }
 
-    // Background refresh: only redraw if something was added or deleted
-    const oldIds = prompts.map(p => p._id).join(",");
-    const newIds = fresh.map(p => p._id).join(",");
+    // Background refresh: redraw only if prompts or trending order changed
+    const signature = list =>
+      list.map(p => p._id + ":" + (p.isTrending ? p.trendingOrder : "-")).join(",");
+
+    const changed = signature(prompts) !== signature(fresh);
 
     prompts = fresh;
 
-    if (!silent || oldIds !== newIds) {
-      applySearch();
+    if (!silent || changed) {
+      render();
     }
 
   } catch (error) {
@@ -49,89 +66,107 @@ async function loadPrompts(silent = false) {
 
     // A failed background refresh should not wipe prompts already on screen
     if (!silent) {
-      promptGrid.innerHTML = `
-        <h2>Failed to load prompts</h2>
-      `;
+      promptGrid.innerHTML = '<p class="message">Failed to load prompts. Please refresh the page.</p>';
     }
   }
 }
 
-/* DISPLAY PROMPTS */
-function displayPrompts(data) {
-  promptGrid.innerHTML = "";
+/* ONE IMAGE CARD: image + tool label + copy button */
+function cardHtml(prompt) {
+  const category = prompt.category || "";
+  const url = TOOL_LINKS[category];
 
-  if (!data || data.length === 0) {
-    promptGrid.innerHTML = "<p>No prompts found</p>";
-    return;
-  }
+  const label = url
+    ? `<a class="tool-label" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(category)} in a new tab">${escapeHtml(category)} <span aria-hidden="true">&#8599;</span></a>`
+    : `<span class="tool-label">${escapeHtml(category)}</span>`;
 
-  data.forEach(prompt => {
-    const card = document.createElement("div");
-    card.className = "prompt-card";
-
-    const text = prompt.promptText || prompt.prompt || "";
-
-    card.innerHTML = `
-      <img src="${escapeHtml(prompt.image)}" alt="${escapeHtml(prompt.title)}" loading="lazy">
-
-      <div class="card-content">
-
-        <span class="category">
-          ${escapeHtml(prompt.category)}
-        </span>
-
-        <h2>
-          ${escapeHtml(prompt.title)}
-        </h2>
-
-        <p>
-          ${escapeHtml(text)}
-        </p>
-
-        <button class="copy-btn">
-          Copy Prompt
-        </button>
-
+  return `
+    <article class="prompt-card">
+      <div class="card-media">
+        <img src="${escapeHtml(prompt.image)}" alt="${escapeHtml(prompt.title)}" loading="lazy" decoding="async">
+        ${label}
       </div>
-    `;
-
-    card.querySelector(".copy-btn").addEventListener("click", () => {
-      copyPrompt(text);
-    });
-
-    promptGrid.appendChild(card);
-  });
+      <button type="button" class="copy-btn" data-id="${escapeHtml(prompt._id)}">Copy Prompt</button>
+    </article>`;
 }
 
-/* COPY PROMPT */
-function copyPrompt(text) {
+/* DRAW EVERYTHING */
+function render() {
+  const value = searchInput ? searchInput.value.trim().toLowerCase() : "";
+
+  /* Trending: in the exact order saved in the admin dashboard */
+  const trending = prompts
+    .filter(p => p.isTrending)
+    .sort((a, b) => (a.trendingOrder ?? 0) - (b.trendingOrder ?? 0));
+
+  if (trending.length && !value) {
+    trendingRow.innerHTML = trending.map(cardHtml).join("");
+    trendingSection.hidden = false;
+  } else {
+    trendingRow.innerHTML = "";
+    trendingSection.hidden = true;
+  }
+
+  /* All prompts (search still matches title, category and prompt text) */
+  const filtered = prompts.filter(p =>
+    (p.title || "").toLowerCase().includes(value) ||
+    (p.category || "").toLowerCase().includes(value) ||
+    getPromptText(p).toLowerCase().includes(value)
+  );
+
+  promptGrid.innerHTML = filtered.length
+    ? filtered.map(cardHtml).join("")
+    : '<p class="message">No prompts found</p>';
+}
+
+/* COPY PROMPT (one listener for every card; tool label links are not buttons, so they never copy) */
+document.addEventListener("click", event => {
+  const button = event.target.closest(".copy-btn");
+
+  if (!button) return;
+
+  const prompt = prompts.find(p => p._id === button.dataset.id);
+  const text = prompt ? getPromptText(prompt) : "";
+
   if (!text) return;
 
-  navigator.clipboard.writeText(text)
-    .then(() => alert("Prompt Copied 🚀"))
-    .catch(() => alert("Copy failed"));
+  copyText(text).then(ok => {
+    button.textContent = ok ? "Copied \u2713" : "Copy failed";
+    setTimeout(() => { button.textContent = "Copy Prompt"; }, 1500);
+  });
+});
+
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text).then(() => true, () => fallbackCopy(text));
+  }
+  return Promise.resolve(fallbackCopy(text));
+}
+
+function fallbackCopy(text) {
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.style.position = "fixed";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.select();
+
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+
+  area.remove();
+  return ok;
 }
 
 /* SEARCH */
-function applySearch() {
-  const value = searchInput ? searchInput.value.toLowerCase() : "";
-
-  const filtered = prompts.filter(prompt =>
-    (prompt.title || "").toLowerCase().includes(value) ||
-    (prompt.category || "").toLowerCase().includes(value)
-  );
-
-  displayPrompts(filtered);
-}
-
 if (searchInput) {
-  searchInput.addEventListener("input", applySearch);
+  searchInput.addEventListener("input", render);
 }
 
 /* START */
 loadPrompts();
 
-/* AUTO-UPDATE: check for new prompts every minute and when the tab is opened again */
+/* AUTO-UPDATE: check every minute and when the tab is opened again */
 setInterval(() => {
   if (!document.hidden) {
     loadPrompts(true);
