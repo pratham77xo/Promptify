@@ -76,12 +76,25 @@
         SAVE PROMPT
       </button>
 
+      <h1 class="section-title">Trending</h1>
+      <p class="trend-help">Tap images below to add or remove them. Press and hold, then drag to change the order. Then press Save Order.</p>
+
+      <div id="trendingEmpty" class="trend-empty">No trending images selected yet.</div>
+      <div id="trendingList" class="trend-list"></div>
+
+      <button id="saveTrendingBtn" onclick="saveTrending()">SAVE ORDER</button>
+
+      <p class="trend-help trend-help-gap">All prompts</p>
+      <div id="trendingPicker" class="trend-picker"></div>
+
+      <h1 class="section-title">All Prompts</h1>
       <div id="promptContainer"></div>
 
     </div>
 
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
   <script src="admin.js"></script>
 
 </body>

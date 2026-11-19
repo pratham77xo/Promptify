@@ -44,7 +44,7 @@
     <div class="nav-links">
       <a href="#">Home</a>
       <a href="#trending">Trending</a>
-      <a href="#categories">Categories</a>
+      <a href="#all">All prompts</a>
     </div>
   </nav>
 
@@ -62,11 +62,20 @@
     >
   </header>
 
-  <!-- PROMPT GRID -->
-  <main>
-    <section id="trending">
-      <div class="prompt-grid" id="promptGrid"></div>
+  <main class="container">
+
+    <!-- TRENDING (hidden until the admin picks some) -->
+    <section id="trending" class="section" hidden>
+      <h2 class="section-heading">Trending</h2>
+      <div class="trending-row" id="trendingRow"></div>
     </section>
+
+    <!-- ALL PROMPTS -->
+    <section id="all" class="section">
+      <h2 class="section-heading">All prompts</h2>
+      <div class="grid" id="promptGrid"></div>
+    </section>
+
   </main>
 
   <!-- FOOTER -->

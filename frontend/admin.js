@@ -19,6 +19,7 @@ function checkLogin() {
 
   if (code === secretCode) {
     localStorage.setItem("adminLoggedIn", "true");
+    localStorage.setItem("adminCode", code); // sent with Trending saves
     window.location.href = "admin-dashboard.html";
   } else {
     error.innerText = "Wrong Admin Code";
@@ -266,6 +267,8 @@ async function loadPrompts() {
       throw new Error("Unexpected response from server");
     }
 
+    setTrendingState(data);
+
     container.innerHTML = "";
 
     data.forEach(prompt => {
@@ -341,4 +344,172 @@ function clearForm() {
 /* INIT DASHBOARD */
 if (window.location.pathname.includes("admin-dashboard.html")) {
   loadPrompts();
+}
+
+
+/* ================= TRENDING MANAGER ================= */
+const TRENDING_URL = API_URL.replace(/\/prompts$/, "/trending");
+
+let allPrompts = [];
+let trendingIds = [];
+let trendingDirty = false;
+let trendingSortable = null;
+let isSavingTrending = false;
+
+function setTrendingState(data) {
+  allPrompts = data;
+  const existing = new Set(data.map(p => p._id));
+
+  if (trendingDirty) {
+    // keep unsaved changes, only drop prompts that were deleted
+    trendingIds = trendingIds.filter(id => existing.has(id));
+  } else {
+    trendingIds = data
+      .filter(p => p.isTrending)
+      .sort((a, b) => (a.trendingOrder ?? 0) - (b.trendingOrder ?? 0))
+      .map(p => p._id);
+  }
+
+  renderTrending();
+}
+
+function renumberTrending() {
+  document.querySelectorAll("#trendingList .trend-num").forEach((el, i) => {
+    el.textContent = i + 1;
+  });
+}
+
+function renderTrending() {
+  const list = document.getElementById("trendingList");
+  const picker = document.getElementById("trendingPicker");
+  const empty = document.getElementById("trendingEmpty");
+
+  if (!list || !picker) {
+    return;
+  }
+
+  const byId = new Map(allPrompts.map(p => [p._id, p]));
+
+  list.innerHTML = trendingIds.map((id, i) => {
+    const p = byId.get(id);
+    return `
+      <div class="trend-item" data-id="${escapeHtml(id)}">
+        <span class="trend-num">${i + 1}</span>
+        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}" draggable="false">
+        <button type="button" class="trend-remove" data-remove="${escapeHtml(id)}" aria-label="Remove from trending">&times;</button>
+      </div>`;
+  }).join("");
+
+  empty.style.display = trendingIds.length ? "none" : "block";
+
+  const selected = new Set(trendingIds);
+
+  picker.innerHTML = allPrompts.map(p => `
+    <button type="button" class="pick-item${selected.has(p._id) ? " selected" : ""}" data-id="${escapeHtml(p._id)}" aria-pressed="${selected.has(p._id)}">
+      <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.title)}">
+    </button>`).join("");
+
+  if (!trendingSortable && window.Sortable) {
+    trendingSortable = Sortable.create(list, {
+      animation: 150,
+      filter: ".trend-remove",
+      preventOnFilter: false,
+      delay: 150,              // press-and-hold on touch so scrolling still works
+      delayOnTouchOnly: true,
+      touchStartThreshold: 5,
+      ghostClass: "trend-ghost",
+      chosenClass: "trend-chosen",
+      dragClass: "trend-drag",
+      onEnd: () => {
+        trendingIds = [...list.children].map(el => el.dataset.id);
+        trendingDirty = true;
+        renumberTrending();
+      }
+    });
+  }
+}
+
+function toggleTrending(id) {
+  const i = trendingIds.indexOf(id);
+
+  if (i === -1) {
+    if (trendingIds.length >= 50) {
+      showMessage("Trending can hold up to 50 images.", "error");
+      return;
+    }
+    trendingIds.push(id);
+  } else {
+    trendingIds.splice(i, 1);
+  }
+
+  trendingDirty = true;
+  renderTrending();
+}
+
+const trendingListEl = document.getElementById("trendingList");
+const trendingPickerEl = document.getElementById("trendingPicker");
+
+if (trendingListEl) {
+  trendingListEl.addEventListener("click", e => {
+    const btn = e.target.closest("[data-remove]");
+    if (btn) toggleTrending(btn.dataset.remove);
+  });
+}
+
+if (trendingPickerEl) {
+  trendingPickerEl.addEventListener("click", e => {
+    const btn = e.target.closest(".pick-item");
+    if (btn) toggleTrending(btn.dataset.id);
+  });
+}
+
+async function saveTrending() {
+  if (isSavingTrending) {
+    return;
+  }
+
+  const button = document.getElementById("saveTrendingBtn");
+  isSavingTrending = true;
+  button.disabled = true;
+  button.textContent = "SAVING...";
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const res = await fetch(TRENDING_URL, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-code": localStorage.getItem("adminCode") || ""
+      },
+      body: JSON.stringify({ ids: trendingIds }),
+      signal: controller.signal
+    });
+
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(result.message || "Server error (" + res.status + ")");
+    }
+
+    trendingDirty = false;
+    await loadPrompts(); // reload from the database to confirm it was saved
+    showMessage("Trending order saved ✅", "success");
+
+  } catch (error) {
+    console.log(error);
+    showMessage(
+      error.name === "AbortError"
+        ? "The server is taking too long. Try again in a moment."
+        : "Could not save trending: " + error.message,
+      "error"
+    );
+
+  } finally {
+    clearTimeout(timer);
+    isSavingTrending = false;
+    button.disabled = false;
+    button.textContent = "SAVE ORDER";
+  }
 }
