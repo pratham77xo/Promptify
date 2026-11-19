@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Promptify - Trending AI Prompts & Stunning Images</title>
-  <meta name="description" content="Discover creative AI prompts, cinematic visuals and viral AI ideas.">
+  <title>Promptify — Discover. Copy. Create.</title>
+  <meta name="description" content="Discover trending AI image prompts, explore creative ideas and create amazing visuals with Promptify.">
 
   <!-- Google Tag Manager -->
   <script>
@@ -14,7 +13,7 @@
       w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
       var f = d.getElementsByTagName(s)[0],
           j = d.createElement(s),
-          dl = l != 'dataLayer' ? '&l=' + l : '';
+          dl = l !== 'dataLayer' ? '&l=' + l : '';
       j.async = true;
       j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
       f.parentNode.insertBefore(j, f);
@@ -23,70 +22,52 @@
   <!-- End Google Tag Manager -->
 
   <link rel="stylesheet" href="style.css">
+  <style>
+    .home-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
+    .home-action{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 22px;border:1px solid #808080;border-radius:10px;text-decoration:none;font-weight:600;transition:background .2s,color .2s,border-color .2s}
+    .home-action.primary{background:#fff;color:#000;border-color:#fff}
+    .home-action.secondary{background:transparent;color:inherit}
+    .home-action:hover{border-color:#fff;opacity:.88}
+    .home-note{max-width:620px;margin:18px auto 0;text-align:center;color:#999;line-height:1.6}
+    .home-hero{text-align:center;padding-top:clamp(72px,12vw,140px);padding-bottom:clamp(72px,12vw,140px)}
+    .home-hero h1{max-width:850px;margin:0 auto;font-size:clamp(2.1rem,6vw,4.6rem);line-height:1.05}
+    .home-hero p{max-width:650px;margin:18px auto 0;line-height:1.7}
+    @media(max-width:520px){.home-actions{flex-direction:column;padding:0 8px}.home-action{width:100%}}
+  </style>
 </head>
-
 <body>
-
   <!-- Google Tag Manager (noscript) -->
-  <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PCGMT55X"
-            height="0" width="0" style="display:none;visibility:hidden"></iframe>
-  </noscript>
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PCGMT55X" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <!-- NAVBAR -->
   <nav>
-    <div class="logo-section">
+    <a class="logo-section" href="index.html" aria-label="Promptify home">
       <img src="./images/logo.png" class="logo" alt="Promptify Logo">
       <span class="brand-name">Promptify</span>
-    </div>
-
+    </a>
     <div class="nav-links">
-      <a href="#">Home</a>
-      <a href="#trending">Trending</a>
-      <a href="#all">All prompts</a>
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="trending.html">Trending</a>
+      <a href="all-prompts.html">All prompts</a>
     </div>
   </nav>
 
-  <!-- HERO -->
-  <header class="hero">
-    <h1>Trending AI Prompts &amp; Stunning Images</h1>
-    <p>Discover creative prompts, cinematic visuals and viral AI ideas.</p>
-
-    <label for="searchInput" class="sr-only">Search prompts</label>
-    <input
-      type="search"
-      id="searchInput"
-      placeholder="Search prompts..."
-      autocomplete="off"
-    >
-  </header>
-
   <main class="container">
-
-    <!-- TRENDING (hidden until the admin picks some) -->
-    <section id="trending" class="section" hidden>
-      <h2 class="section-heading">Trending</h2>
-      <div class="trending-row" id="trendingRow"></div>
+    <section class="home-hero">
+      <h1>Discover. Copy. Create.</h1>
+      <p>Find inspiring AI image prompts, explore what's trending and turn creative ideas into visuals.</p>
+      <div class="home-actions">
+        <a class="home-action primary" href="trending.html">Explore Trending <span aria-hidden="true">↗</span></a>
+        <a class="home-action secondary" href="all-prompts.html">Browse All Prompts</a>
+      </div>
+      <p class="home-note">No account. No signup. Just discover a prompt, copy it and start creating.</p>
     </section>
-
-    <!-- ALL PROMPTS -->
-    <section id="all" class="section">
-      <h2 class="section-heading">All prompts</h2>
-      <div class="grid" id="promptGrid"></div>
-    </section>
-
   </main>
 
-  <!-- FOOTER -->
   <footer>
     <h3>Promptify</h3>
     <p>Discover trending AI prompts and stunning visuals.</p>
     <p>&copy; 2026 Promptify. All Rights Reserved.</p>
   </footer>
-
-  <script src="script.js" defer></script>
-
 </body>
-
 </html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trending AI Prompts — Promptify</title>
+  <meta name="description" content="Explore the trending AI image prompts curated on Promptify.">
+
+  <!-- Google Tag Manager -->
+  <script>
+    (function (w, d, s, l, i) {
+      w[l] = w[l] || [];
+      w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+      var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l !== 'dataLayer' ? '&l=' + l : '';
+      j.async = true;
+      j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+      f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-PCGMT55X');
+  </script>
+  <!-- End Google Tag Manager -->
+
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .page-content{max-width:1240px;margin:0 auto;padding:clamp(28px,5vw,60px) 18px}
+    .page-top{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:18px;margin-bottom:24px}
+    .page-top h1{margin:0;font-size:clamp(2rem,5vw,3.2rem)}
+    .page-top p{margin:8px 0 0;color:#999;line-height:1.5}
+    .page-search{width:min(100%,320px);min-height:46px;padding:12px 14px;border:1px solid #666;border-radius:9px;background:#111;color:#fff;font:inherit}
+    .page-search:focus{outline:2px solid #aaa;outline-offset:2px}
+    #trendingGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .prompt-card{min-width:0;display:flex;flex-direction:column;gap:10px}
+    .card-media{position:relative;overflow:hidden;border-radius:12px;background:#1a1a1a}
+    .card-media img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+    .tool-label{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;padding:7px 10px;border:1px solid rgba(255,255,255,.45);border-radius:7px;background:rgba(0,0,0,.78);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600}
+    .tool-label:hover{background:#fff;color:#000}
+    .copy-btn{min-height:42px;border:1px solid #888;border-radius:8px;background:#fff;color:#000;font-weight:700;cursor:pointer}
+    .copy-btn:hover{background:#ddd}
+    .message{grid-column:1/-1;color:#999;padding:20px 0}
+    @media(min-width:640px){#trendingGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+    @media(min-width:1024px){#trendingGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}}
+  </style>
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PCGMT55X" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+
+  <nav>
+    <a class="logo-section" href="index.html" aria-label="Promptify home">
+      <img src="./images/logo.png" class="logo" alt="Promptify Logo">
+      <span class="brand-name">Promptify</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="trending.html" aria-current="page">Trending</a>
+      <a href="all-prompts.html">All prompts</a>
+    </div>
+  </nav>
+
+  <main class="page-content">
+    <header class="page-top">
+      <div>
+        <h1>Trending</h1>
+        <p>Prompts selected and arranged by the Promptify team.</p>
+      </div>
+      <label class="sr-only" for="searchInput">Search trending prompts</label>
+      <input id="searchInput" class="page-search" type="search" placeholder="Search trending prompts..." autocomplete="off">
+    </header>
+    <section aria-label="Trending prompts">
+      <div id="trendingGrid"></div>
+    </section>
+  </main>
+
+  <footer>
+    <h3>Promptify</h3>
+    <p>Discover trending AI prompts and stunning visuals.</p>
+    <p>&copy; 2026 Promptify. All Rights Reserved.</p>
+  </footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

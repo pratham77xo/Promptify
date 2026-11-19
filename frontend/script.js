@@ -1,56 +1,31 @@
-/*
- * Promptify public frontend
- * Replacement for: frontend/script.js
- *
- * Public prompt cards show only:
- *   1. Image
- *   2. Clickable AI-tool label (for supported categories)
- *   3. Copy Prompt button
- *
- * The complete prompt remains in the API response and is copied on demand.
+/* Promptify public frontend
+ * Shared by trending.html and all-prompts.html.
+ * Trending and All Prompts are now separate pages.
  */
 
 const API_URL = "https://promptify-backend-ruty.onrender.com/api/prompts";
 
 const AI_TOOLS = {
-  chatgpt: {
-    name: "ChatGPT",
-    url: "https://chatgpt.com/"
-  },
-  gemini: {
-    name: "Gemini",
-    url: "https://gemini.google.com/"
-  },
-  leonardoai: {
-    name: "Leonardo AI",
-    url: "https://leonardo.ai/"
-  },
-  midjourney: {
-    name: "Midjourney",
-    url: "https://www.midjourney.com/"
-  }
+  chatgpt: { name: "ChatGPT", url: "https://chatgpt.com/" },
+  gemini: { name: "Gemini", url: "https://gemini.google.com/" },
+  leonardoai: { name: "Leonardo AI", url: "https://leonardo.ai/" },
+  midjourney: { name: "Midjourney", url: "https://www.midjourney.com/" }
 };
 
 const promptGrid = document.getElementById("promptGrid");
-const trendingSection = document.getElementById("trending");
-const trendingRow = document.getElementById("trendingRow");
+const trendingGrid = document.getElementById("trendingGrid");
 const searchInput = document.getElementById("searchInput");
+const pageType = trendingGrid ? "trending" : promptGrid ? "all" : "none";
 
 let prompts = [];
-let refreshTimer = null;
 
 function normalizeCategory(category) {
-  return String(category ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+  return String(category ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function getTool(category) {
   const key = normalizeCategory(category);
-  return Object.prototype.hasOwnProperty.call(AI_TOOLS, key)
-    ? AI_TOOLS[key]
-    : null;
+  return Object.prototype.hasOwnProperty.call(AI_TOOLS, key) ? AI_TOOLS[key] : null;
 }
 
 function getPromptText(prompt) {
@@ -60,24 +35,17 @@ function getPromptText(prompt) {
 
 function getSafeImageUrl(value) {
   if (typeof value !== "string") return "";
-
   const source = value.trim();
   if (!source) return "";
 
-  // Promptify stores images as base64 data URLs or normal hosted image URLs.
-  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(source)) {
-    return source;
-  }
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(source)) return source;
 
   try {
     const parsed = new URL(source, window.location.href);
-    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
-      return parsed.href;
-    }
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") return parsed.href;
   } catch (error) {
-    // Invalid image URL: leave the image source empty.
+    console.warn("Promptify: invalid image URL", error);
   }
-
   return "";
 }
 
@@ -90,31 +58,26 @@ function createPromptCard(prompt) {
 
   const image = document.createElement("img");
   image.src = getSafeImageUrl(prompt.image);
-  image.alt = typeof prompt.title === "string" && prompt.title.trim()
-    ? prompt.title.trim()
-    : "AI prompt image";
+  image.alt = "AI prompt preview";
   image.loading = "lazy";
   image.decoding = "async";
-
   media.appendChild(image);
 
   const tool = getTool(prompt.category);
   if (tool) {
-    const toolLink = document.createElement("a");
-    toolLink.className = "tool-label";
-    toolLink.href = tool.url;
-    toolLink.target = "_blank";
-    toolLink.rel = "noopener noreferrer";
-    toolLink.textContent = `${tool.name} ↗`;
-    toolLink.setAttribute("aria-label", `Open ${tool.name} in a new tab`);
-    // No click handler is attached to this anchor; normal browser navigation works.
-    media.appendChild(toolLink);
+    const link = document.createElement("a");
+    link.className = "tool-label";
+    link.href = tool.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = `${tool.name} ↗`;
+    link.setAttribute("aria-label", `Open ${tool.name} in a new tab`);
+    media.appendChild(link);
   } else if (prompt.category) {
-    // Keep an unknown category visible, but never send it to a guessed destination.
-    const categoryLabel = document.createElement("span");
-    categoryLabel.className = "tool-label";
-    categoryLabel.textContent = String(prompt.category);
-    media.appendChild(categoryLabel);
+    const label = document.createElement("span");
+    label.className = "tool-label";
+    label.textContent = String(prompt.category);
+    media.appendChild(label);
   }
 
   const copyButton = document.createElement("button");
@@ -124,16 +87,24 @@ function createPromptCard(prompt) {
   copyButton.dataset.id = String(prompt._id ?? "");
   copyButton.setAttribute("aria-label", "Copy the complete prompt");
 
-  // Intentionally no title or description is added to the public card.
-  card.appendChild(media);
-  card.appendChild(copyButton);
-
+  // Public card intentionally contains no title or prompt description.
+  card.append(media, copyButton);
   return card;
+}
+
+function getTrendingPrompts(list) {
+  return list
+    .filter(prompt => prompt.isTrending === true)
+    .slice()
+    .sort((a, b) => {
+      const aOrder = Number.isFinite(Number(a.trendingOrder)) ? Number(a.trendingOrder) : Number.MAX_SAFE_INTEGER;
+      const bOrder = Number.isFinite(Number(b.trendingOrder)) ? Number(b.trendingOrder) : Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder;
+    });
 }
 
 function renderCardList(container, items, emptyMessage) {
   if (!container) return;
-
   container.replaceChildren();
 
   if (!items.length) {
@@ -150,58 +121,33 @@ function renderCardList(container, items, emptyMessage) {
 }
 
 function render() {
-  if (!promptGrid) return;
+  if (pageType === "none") return;
 
-  const searchTerm = searchInput
-    ? searchInput.value.trim().toLowerCase()
-    : "";
-
-  // Show trending in the order saved by the admin dashboard.
-  const trending = prompts
-    .filter(prompt => prompt.isTrending === true)
-    .slice()
-    .sort((a, b) => {
-      const orderA = Number.isFinite(Number(a.trendingOrder))
-        ? Number(a.trendingOrder)
-        : Number.MAX_SAFE_INTEGER;
-      const orderB = Number.isFinite(Number(b.trendingOrder))
-        ? Number(b.trendingOrder)
-        : Number.MAX_SAFE_INTEGER;
-      return orderA - orderB;
-    });
-
-  if (trendingSection && trendingRow) {
-    if (trending.length > 0 && !searchTerm) {
-      trendingSection.hidden = false;
-      renderCardList(trendingRow, trending, "No trending prompts yet");
-    } else {
-      trendingSection.hidden = true;
-      trendingRow.replaceChildren();
-    }
-  }
-
-  const filtered = prompts.filter(prompt => {
-    if (!searchTerm) return true;
-
-    return [
-      prompt.title,
-      prompt.category,
-      getPromptText(prompt)
-    ].some(value => String(value ?? "").toLowerCase().includes(searchTerm));
+  const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  const source = pageType === "trending" ? getTrendingPrompts(prompts) : prompts;
+  const filtered = source.filter(prompt => {
+    if (!term) return true;
+    return [prompt.title, prompt.category, getPromptText(prompt)]
+      .some(value => String(value ?? "").toLowerCase().includes(term));
   });
 
-  renderCardList(promptGrid, filtered, "No prompts found");
+  if (pageType === "trending") {
+    renderCardList(trendingGrid, filtered, "No trending prompts yet. Check back soon.");
+  } else {
+    renderCardList(promptGrid, filtered, "No prompts found.");
+  }
 }
 
 async function loadPrompts(showLoading = false) {
-  if (!promptGrid) return;
+  if (pageType === "none") return;
+  const activeGrid = pageType === "trending" ? trendingGrid : promptGrid;
 
   try {
-    if (showLoading) {
+    if (showLoading && activeGrid) {
       const loading = document.createElement("p");
       loading.className = "message";
       loading.textContent = "Loading prompts...";
-      promptGrid.replaceChildren(loading);
+      activeGrid.replaceChildren(loading);
     }
 
     const response = await fetch(API_URL, {
@@ -209,17 +155,11 @@ async function loadPrompts(showLoading = false) {
       headers: { Accept: "application/json" },
       cache: "no-store"
     });
-
-    if (!response.ok) {
-      throw new Error(`Server error (${response.status})`);
-    }
+    if (!response.ok) throw new Error(`Server error (${response.status})`);
 
     const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error("Unexpected response from the Promptify API");
-    }
+    if (!Array.isArray(data)) throw new Error("Unexpected response from the Promptify API");
 
-    // Detect prompt edits as well as additions, removals and Trending changes.
     const signature = list => JSON.stringify(list.map(prompt => ({
       id: prompt._id,
       image: prompt.image,
@@ -232,20 +172,14 @@ async function loadPrompts(showLoading = false) {
 
     const changed = signature(prompts) !== signature(data);
     prompts = data;
-
-    if (showLoading || changed || prompts.length === 0) {
-      render();
-    } else if (promptGrid.childElementCount === 0) {
-      render();
-    }
+    if (showLoading || changed || activeGrid.childElementCount === 0) render();
   } catch (error) {
     console.error("Promptify: failed to load prompts", error);
-
     if (showLoading || prompts.length === 0) {
       const message = document.createElement("p");
       message.className = "message";
       message.textContent = "Unable to load prompts. Please refresh the page.";
-      promptGrid.replaceChildren(message);
+      if (activeGrid) activeGrid.replaceChildren(message);
     }
   }
 }
@@ -261,19 +195,13 @@ function fallbackCopy(text) {
   textarea.select();
 
   let copied = false;
-  try {
-    copied = document.execCommand("copy");
-  } catch (error) {
-    copied = false;
-  }
-
+  try { copied = document.execCommand("copy"); } catch (error) { copied = false; }
   textarea.remove();
   return copied;
 }
 
 async function copyText(text) {
   if (!text) return false;
-
   if (navigator.clipboard && window.isSecureContext) {
     try {
       await navigator.clipboard.writeText(text);
@@ -282,46 +210,37 @@ async function copyText(text) {
       return fallbackCopy(text);
     }
   }
-
   return fallbackCopy(text);
 }
 
-// One delegated handler supports cards loaded now and cards loaded later.
-// It listens only to Copy Prompt buttons, never to AI-tool anchors.
 document.addEventListener("click", async event => {
   const button = event.target.closest(".copy-btn");
   if (!button) return;
 
   event.preventDefault();
   event.stopPropagation();
-
   const prompt = prompts.find(item => String(item._id) === button.dataset.id);
-  const fullPromptText = prompt ? getPromptText(prompt) : "";
+  const text = prompt ? getPromptText(prompt) : "";
 
-  if (!fullPromptText) {
+  if (!text) {
     button.textContent = "Prompt unavailable";
-    window.setTimeout(() => { button.textContent = "Copy Prompt"; }, 1500);
+    window.setTimeout(() => { if (button.isConnected) button.textContent = "Copy Prompt"; }, 1500);
     return;
   }
 
-  const copied = await copyText(fullPromptText);
+  const copied = await copyText(text);
   button.textContent = copied ? "Copied!" : "Copy failed";
-  window.setTimeout(() => {
-    if (button.isConnected) button.textContent = "Copy Prompt";
-  }, 1500);
+  window.setTimeout(() => { if (button.isConnected) button.textContent = "Copy Prompt"; }, 1500);
 });
 
-if (searchInput) {
-  searchInput.addEventListener("input", render);
+if (searchInput) searchInput.addEventListener("input", render);
+
+if (pageType !== "none") {
+  loadPrompts(true);
+  window.setInterval(() => {
+    if (!document.hidden) loadPrompts(false);
+  }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadPrompts(false);
+  });
 }
-
-// Initial page load, then refresh while the visitor has the page open.
-loadPrompts(true);
-
-refreshTimer = window.setInterval(() => {
-  if (!document.hidden) loadPrompts(false);
-}, 60000);
-
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) loadPrompts(false);
-});
