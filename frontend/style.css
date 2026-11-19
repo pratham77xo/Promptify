@@ -167,6 +167,8 @@ nav {
   border: 1px solid var(--border); border-radius: 999px;
   font-size: 0.78rem; font-weight: 600; line-height: 1.2;
   text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  z-index: 2; pointer-events: auto;
+  display: inline-flex; align-items: center; min-height: 36px;  /* easier to tap */
 }
 
 a.tool-label { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
