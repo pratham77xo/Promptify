@@ -21,6 +21,16 @@ new mongoose.Schema({
   image:{
     type:String,
     required:true
+  },
+
+  isTrending:{
+    type:Boolean,
+    default:false
+  },
+
+  trendingOrder:{
+    type:Number,
+    default:null
   }
 
 });
