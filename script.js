@@ -1,12 +1,19 @@
 const API_URL = "https://promptify-backend-ruty.onrender.com/api/prompts";
 
-/* Official sites for the categories that exist in the admin dropdown */
-const TOOL_LINKS = {
-  "ChatGPT": "https://chatgpt.com/",
-  "Leonardo AI": "https://leonardo.ai/",
-  "Gemini": "https://gemini.google.com/",
-  "Midjourney": "https://www.midjourney.com/"
+/* Official sites. Keys are normalised (lower-case, letters/digits only) so
+   "ChatGPT", "chatgpt ", "Chat GPT" and "Leonardo AI" / "leonardo-ai" all match,
+   but unsupported categories never get a link. */
+const TOOLS = {
+  chatgpt:    { name: "ChatGPT",     url: "https://chatgpt.com/" },
+  gemini:     { name: "Gemini",      url: "https://gemini.google.com/" },
+  leonardoai: { name: "Leonardo AI", url: "https://leonardo.ai/" },
+  midjourney: { name: "Midjourney",  url: "https://www.midjourney.com/" }
 };
+
+function findTool(category) {
+  const key = String(category ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return Object.prototype.hasOwnProperty.call(TOOLS, key) ? TOOLS[key] : null;
+}
 
 const promptGrid = document.getElementById("promptGrid");
 const trendingSection = document.getElementById("trending");
@@ -73,11 +80,11 @@ async function loadPrompts(silent = false) {
 
 /* ONE IMAGE CARD: image + tool label + copy button */
 function cardHtml(prompt) {
+  const tool = findTool(prompt.category);
   const category = prompt.category || "";
-  const url = TOOL_LINKS[category];
 
-  const label = url
-    ? `<a class="tool-label" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="Open ${escapeHtml(category)} in a new tab">${escapeHtml(category)} <span aria-hidden="true">&#8599;</span></a>`
+  const label = tool
+    ? `<a class="tool-label" href="${tool.url}" target="_blank" rel="noopener noreferrer" aria-label="Open ${tool.name} in a new tab">${tool.name} <span aria-hidden="true">&#8599;</span></a>`
     : `<span class="tool-label">${escapeHtml(category)}</span>`;
 
   return `
@@ -131,7 +138,7 @@ document.addEventListener("click", event => {
   if (!text) return;
 
   copyText(text).then(ok => {
-    button.textContent = ok ? "Copied \u2713" : "Copy failed";
+    button.textContent = ok ? "Copied!" : "Copy failed";
     setTimeout(() => { button.textContent = "Copy Prompt"; }, 1500);
   });
 });
